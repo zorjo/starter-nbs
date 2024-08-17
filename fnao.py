@@ -101,7 +101,7 @@ https://flipkart.com/campus-sutra-regular-women-blue-jeans/p/itm49817785d8ef2?pi
 https://flipkart.com/campus-sutra-women-cargos/p/itm50ce62e6eb7f2?pid=CRGHFG6VQ63FR9SD&lid=LSTCRGHFG6VQ63FR9SDZQTNSG&marketplace=FLIPKART&q=campusstura&store=clo&srno=s_3_98&otracker=search&fm=organic&iid=499e0f50-244a-4dd5-9926-7ca32bfa00c8.CRGHFG6VQ63FR9SD.SEARCH&ppt=None&ppn=None&ssid=toayyzocds0000001722578251188&qH=7a3ae33810fb2b2f
 https://flipkart.com/campus-sutra-women-striped-casual-multicolor-shirt/p/itm97c606c3c4231?pid=SHTHFG6GWCRW2HWA&lid=LSTSHTHFG6GWCRW2HWASQMFHY&marketplace=FLIPKART&q=campusstura&store=clo&srno=s_3_99&otracker=search&fm=organic&iid=499e0f50-244a-4dd5-9926-7ca32bfa00c8.SHTHFG6GWCRW2HWA.SEARCH&ppt=None&ppn=None&ssid=toayyzocds0000001722578251188&qH=7a3ae33810fb2b2f"""
 listofurls = urlraw.split('\n')
-listofcodes="""700025408_blue
+coderaw="""700025408_blue
 464946029_navy
 467238492_grey
 466790110_white
@@ -201,6 +201,7 @@ listofcodes="""700025408_blue
 467209700_yellow
 463298317_black
 700026130_grey"""
+listofcodes = coderaw.split('\n')
 headers = {
     'sec-ch-ua': '"Not)A;Brand";v="99", "Google Chrome";v="127", "Chromium";v="127"',
     'Referer': 'https://www.myntra.com/',
@@ -208,30 +209,46 @@ headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
     'sec-ch-ua-platform': '"Windows"',
 }
+headers2 = {
+    'sec-ch-ua': '"Not)A;Brand";v="99", "Google Chrome";v="127", "Chromium";v="127"',
+    'accept': 'application/json',
+    'Referer': 'https://www.ajio.com/b/campus-sutra?query=%3Anewn%3Abrand%3ACampus%20Sutra%3Aoccasion%3ACasual%3Al1l3nestedcategory%3AMen%20-%20Shirts%3Al1l3nestedcategory%3AWomen%20-%20Shirts%3Agenderfilter%3AMen%3Arating%3A4%20star%20%26%20above&classifier=intent&gridColumns=5&segmentIds=',
+    'sec-ch-ua-mobile': '?0',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
+    'sec-ch-ua-platform': '"Windows"',
+}
+
 #follow redirects
 async def request_data(client, url):
+    resp = await client.get(url, headers=headers2, follow_redirects=True)
+    return resp.json()['variantOptions']
+
+
+async def main():
+    async with httpx.AsyncClient() as client:
+        tasks = [request_data(client, 'https://www.ajio.com/api/p/'+code) for code in listofcodes[:100]]
+        print("Starting")
+        characters = await asyncio.gather(*tasks)
+        for i,c in enumerate(characters):
+            print(','.join([x['scDisplaySize'] for x in c if x['stock']['stockLevelStatus']=="outOfStock"]))
+async def request_data2(client, url):
     resp = await client.get(url, headers=headers, follow_redirects=True)
 
     return BeautifulSoup(resp.text, 'html.parser')
 
 
 
-async def main():
+async def main2():
     async with httpx.AsyncClient() as client:
         tasks = []
         for i in range(99):
-            tasks.append(request_data(client, listofurls[i]))
+            tasks.append(request_data2(client, listofurls[i]))
         print("Starting")
         characters = await asyncio.gather(*tasks)
         for i,c in enumerate(characters):
 
             if "This item is currently out of stock" in c.body.text:
                 print("Out of stock")
-                #print(c.body.text)
-                #print(i)
-                #print(listofurls[i])
-                #print(c.body.select_one('h1').text if c.body.select_one('h1') else "No h1")
-                #print(c.body.select_one('div.col-12-12>.row').text if c.body.select_one('div.col-12-12>.row') else "No row")
             else:
                 print("In stock")
 
