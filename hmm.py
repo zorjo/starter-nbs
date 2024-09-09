@@ -10,7 +10,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 #from datetime import date
 #from datetime import datetime
 os.chdir('C:/Users/ASUS/Downloads/Win_665004_chrome-win/chrome-win')
-
+#%%
 options1=webdriver.ChromeOptions()
 options1.binary_location="./chrome.exe";
 options1.add_argument("--no-sandbox")
