@@ -1,6 +1,8 @@
 # %%
 from bs4 import BeautifulSoup
 from selenium import webdriver
+from selenium.webdriver.safari.options  import Options
+from selenium.webdriver.safari.service import Service as SafariService
 #import os
 import time
 import csv
@@ -16,8 +18,10 @@ qty='//*[@id="productDetails_detailBullets_sections1"]/tbody/tr[last()-1]/td'
 packz='//*[@id="productDetails_detailBullets_sections1"]/tbody/tr[last()]/td/span/span[1]'
 
 # %%
-from selenium.webdriver.safari.service import Service as SafariService
 safari_service = SafariService('/usr/bin/safaridriver')  # Adjust path if necessary
+options=Options()
+#options.headless=True
+# headless is disabled on safari
 driver = webdriver.Safari(service=safari_service)
 driver.maximize_window()
 driver.get("https://www.amazon.in/gp/bestsellers/home-improvement/10079360031/ref=zg_bs_nav_home-improvement_3_10079359031")
