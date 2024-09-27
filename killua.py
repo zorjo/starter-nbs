@@ -855,3 +855,39 @@ print(df2)
 df2.to_clipboard()
 #%%
 data = requests.get('https://www.myntra.com/trousers/campus+sutra/campus-sutra-men-comfort-loose-fit-easy-wash-trousers/30464012/buy', headers=headers2)
+#%%
+from bs4 import BeautifulSoup
+import json
+import pandas as pd
+
+# Assuming the HTML content is stored in a variable called 'html_content'
+soup = BeautifulSoup(html_content, 'html.parser')
+
+# Find the script tag containing the product information
+script_tag = soup.find('script', string=lambda text: text and 'window.__myx' in text)
+
+# Extract the JSON data from the script tag
+json_data = script_tag.string.split('window.__myx = ')[1].strip(';')
+
+# Parse the JSON data
+data = json.loads(json_data)
+
+# Extract the required information
+product_data = data['pdpData']
+
+features = {
+    'title': product_data['name'],
+    'in_stock': any(size['available'] for size in product_data['sizes']),
+    'url': f"https://www.myntra.com/{product_data['landingPageUrl']}",
+    'mrp': product_data['mrp'],
+    'offer_price': product_data['price']['discounted'],
+    'category': product_data['analytics']['subCategory'],
+    'subcategory': product_data['analytics']['articleType'],
+    'supercategory': product_data['analytics']['masterCategory'],
+    'id': product_data['id']
+}
+
+# Create a DataFrame
+result = pd.DataFrame([features])
+
+print(result)
