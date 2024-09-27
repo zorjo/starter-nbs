@@ -803,3 +803,55 @@ print(df)
 df.to_clipboard()
 
 
+#%%
+from curl_cffi import requests  
+data = requests.get('https://www.ajio.com/api/p/466637319_blue', headers=headers2)
+
+product_info=data.json()
+def extract_size_info(variant):
+    return {
+        'size': variant['variantOptionQualifiers'][3]['value'],
+        'balance_stock': variant['stock']['stockLevel'],
+        'Stock_Status': variant['stock']['stockLevelStatus']
+    }
+
+# Extract common product information
+platform="Ajio"
+SKU=product_info['request']['optionCode']
+brand = product_info['brandName']
+name = product_info['name']
+category = product_info['brickName']
+selling_price = product_info['price']['value']
+mrp = product_info['wasPriceData']['value']
+rating = product_info['ratingsResponse']['aggregateRating']['averageRating']
+number_of_ratings = product_info['ratingsResponse']['aggregateRating']['numUserRatings']
+
+
+size_info = [extract_size_info(variant) for variant in product_info['variantOptions']]
+
+product_data = []
+for size_variant in size_info:
+    product_data.append({
+        'Platform': platform,
+        'Brand': brand,
+        'Name': name,
+        'Category': category,
+        'SKU': SKU,
+        'Selling Price': selling_price,
+        'MRP': mrp,
+        'size': size_variant['size'],
+        'rating': rating,
+        'number_of_ratings': number_of_ratings,
+        'balance_stock': size_variant['balance_stock'],
+        'Stock_Status': size_variant['Stock_Status']
+    })
+
+df2 = pd.DataFrame(product_data)
+
+
+print(df2)
+
+
+df2.to_clipboard()
+#%%
+data = requests.get('https://www.myntra.com/trousers/campus+sutra/campus-sutra-men-comfort-loose-fit-easy-wash-trousers/30464012/buy', headers=headers2)
