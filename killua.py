@@ -891,3 +891,46 @@ features = {
 result = pd.DataFrame([features])
 
 print(result)
+#%%
+```python
+from bs4 import BeautifulSoup
+import json
+import pandas as pd
+
+# Assuming the HTML content is stored in a variable called 'html_content'
+soup = BeautifulSoup(html_content, 'html.parser')
+
+# Find the script tag containing the product information
+script_tag = soup.find('script', text=lambda t: t and 'window.__myx' in t)
+
+# Extract the JSON data
+json_text = script_tag.string.split('window.__myx = ', 1)[1].rsplit(';', 1)[0]
+data = json.loads(json_text)
+
+# Extract the required information
+product_data = data['pdpData']
+
+# Create a list to store the data for each size
+rows = []
+
+for size in product_data['sizes']:
+    row = {
+        'Platform': 'Myntra',
+        'Brand': product_data['brand']['name'],
+        'Name': product_data['name'],
+        'Category': product_data['analytics']['articleType'],
+        'SKU': product_data['id'],
+        'Selling Price': product_data['price']['discounted'],
+        'MRP': product_data['price']['mrp'],
+        'Size': size['label'],
+        'Rating': product_data['ratings']['averageRating'],
+        'Number of Ratings': product_data['ratings']['totalCount'],
+        'Balance Stock': size['sizeSellerData'][0]['availableCount'] if size['sizeSellerData'] else 0,
+        'Stock Status': 'In Stock' if size['available'] else 'Out of Stock'
+    }
+    rows.append(row)
+
+# Create a DataFrame
+df = pd.DataFrame(rows)
+
+print(df)
