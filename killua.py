@@ -892,11 +892,12 @@ result = pd.DataFrame([features])
 
 print(result)
 #%%
-```python
+
 from bs4 import BeautifulSoup
 import json
 import pandas as pd
-
+data = requests.get('https://www.myntra.com/trousers/campus+sutra/campus-sutra-men-comfort-loose-fit-easy-wash-trousers/30464012/buy', headers=headers2)
+html_content=data.text
 # Assuming the HTML content is stored in a variable called 'html_content'
 soup = BeautifulSoup(html_content, 'html.parser')
 
