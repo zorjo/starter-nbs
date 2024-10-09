@@ -1,5 +1,14 @@
+from curl_cffi.requests import AsyncSession
+import pandas as pd
 import httpx
+import json
+proxies={
+        "http": "http://p.webshare.io:80/",
+        "https": "http://p.webshare.io:80/"
+    }
+from aiolimiter import AsyncLimiter
 import asyncio
+asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 from bs4 import BeautifulSoup
 urlraw = """https://flipkart.com/campus-sutra-men-solid-casual-blue-shirt/p/itm4af004efa60d0?pid=SHTH28GU6RCHKDT4&lid=LSTSHTH28GU6RCHKDT41UJQAN&marketplace=FLIPKART&q=campusstura&store=clo&srno=s_1_1&otracker=search&fm=organic&iid=b34ff6aa-ca04-421c-8473-d3a70b7d3028.SHTH28GU6RCHKDT4.SEARCH&ppt=None&ppn=None&ssid=e6xu8qn8680000001722578248116&qH=7a3ae33810fb2b2f
 https://flipkart.com/campus-sutra-men-printed-casual-multicolor-shirt/p/itmdbdd7447a8974?pid=SHTH28GURVZEGZPM&lid=LSTSHTH28GURVZEGZPMFP1ERI&marketplace=FLIPKART&q=campusstura&store=clo&srno=s_1_2&otracker=search&fm=organic&iid=b34ff6aa-ca04-421c-8473-d3a70b7d3028.SHTH28GURVZEGZPM.SEARCH&ppt=None&ppn=None&ssid=e6xu8qn8680000001722578248116&qH=7a3ae33810fb2b2f
@@ -201,15 +210,18 @@ coderaw="""700025408_blue
 467209700_yellow
 463298317_black
 700026130_grey"""
+limiter = AsyncLimiter(40, 10)
 listofcodes = coderaw.split('\n')
-headers = {
+with open("okay.txt","r") as m:
+    loco=m.read().split('\n')
+headers2 = {
     'sec-ch-ua': '"Not)A;Brand";v="99", "Google Chrome";v="127", "Chromium";v="127"',
     'Referer': 'https://www.myntra.com/',
     'sec-ch-ua-mobile': '?0',
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
     'sec-ch-ua-platform': '"Windows"',
 }
-headers2 = {
+headers = {
     'sec-ch-ua': '"Not)A;Brand";v="99", "Google Chrome";v="127", "Chromium";v="127"',
     'accept': 'application/json',
     'Referer': 'https://www.ajio.com/b/campus-sutra?query=%3Anewn%3Abrand%3ACampus%20Sutra%3Aoccasion%3ACasual%3Al1l3nestedcategory%3AMen%20-%20Shirts%3Al1l3nestedcategory%3AWomen%20-%20Shirts%3Agenderfilter%3AMen%3Arating%3A4%20star%20%26%20above&classifier=intent&gridColumns=5&segmentIds=',
@@ -251,7 +263,69 @@ async def main2():
                 print("Out of stock")
             else:
                 print("In stock")
+total_bandwidth=0
+async def reqm(client, url):
+    global total_bandwidth
+    async with limiter:
+        #try:
+        data = await client.get(url, headers=headers,proxies=proxies,proxy_auth=("pomijfhn-rotate", "unu8s737a7gi"))
+        #except:
+        #    print(f"Timeout occurred for URL: {url}")  # Log the URL if it times out
+        #    return [] 
+        html_content=data.text
+        print(html_content)
+        response_size_kb = len(html_content.encode('utf-8')) / 1024  # Calculate size in KB
+        total_bandwidth += response_size_kb  # Update total bandwidth
+        print(f"Bandwidth used : {response_size_kb:.2f} KB")  # Print individual bandwidth
+        soup = BeautifulSoup(html_content, 'html.parser')
 
 
+        script_tag = soup.find('script', string=lambda t: t and 'window.__myx =' in t)
 
-asyncio.run(main())
+
+        json_text = script_tag.string.split('window.__myx = ', 1)[1]
+        data = json.loads(json_text)
+        product_data = data.get('pdpData', None)  # Use .get() to avoid KeyError
+
+        if product_data is None or 'sizes' not in product_data:
+            print("Error: 'sizes' not found in product_data.")
+            print(url)
+            return []  # Return
+        # Extract the required information
+        product_data = data['pdpData']
+
+        # Create a list to store the data for each size
+        rows = []
+
+        for size in product_data['sizes']:
+            row = {
+                'Platform': 'Myntra',
+                'Brand': product_data.get('brand', {}).get('name', 'Unknown Brand'),
+                'Name': product_data.get('name', 'Unknown Name'),
+                'Category': product_data.get('analytics', {}).get('articleType', 'Unknown Category'),
+                'SKU': product_data.get('id', 'Unknown SKU'),
+                'Selling Price': product_data.get('price', {}).get('discounted', 0),
+                'MRP': product_data.get('price', {}).get('mrp', 0),
+                'Size': size.get('label', 'Unknown Size'),
+                'Rating': product_data.get('ratings', {}).get('averageRating', 0),
+                'Number of Ratings': product_data.get('ratings', {}).get('totalCount', 0),
+                'Balance Stock': size.get('sizeSellerData', [{}])[0].get('availableCount', 0) if size.get('sizeSellerData') else 0,
+                'Stock Status': 'In Stock' if size.get('available', False) else 'Out of Stock'
+            }
+            rows.append(row)
+        return rows
+
+async def main3():
+    async with AsyncSession() as client:
+        tasks = []
+        for i in range(39):
+            tasks.append(reqm(client, loco[i]))
+        print("Starting")
+        res = await asyncio.gather(*tasks)
+        characters= [item for sublist in res for item in sublist]
+        t=pd.DataFrame(characters)
+        t.to_csv('huxh22.csv',index=False)
+        print(t)
+        print(f"Total bandwidth used: {total_bandwidth:.2f} KB")  # Print total bandwidth
+
+asyncio.run(main3())
