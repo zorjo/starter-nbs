@@ -1,12 +1,14 @@
 from curl_cffi.requests import AsyncSession
 import pandas as pd
 import httpx
-import json
+from datetime import datetime
+import json,os,pickle
 proxies={
-        "http": "http://p.webshare.io:80/",
-        "https": "http://p.webshare.io:80/"
+        "http": "http://207.244.217.165:6712",
+        "https": "http://207.244.217.165:6712"
     }
 from aiolimiter import AsyncLimiter
+import time
 import asyncio
 asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 from bs4 import BeautifulSoup
@@ -210,24 +212,25 @@ coderaw="""700025408_blue
 467209700_yellow
 463298317_black
 700026130_grey"""
-limiter = AsyncLimiter(40, 10)
+limiter = AsyncLimiter(100, 5)
 listofcodes = coderaw.split('\n')
+I=0
 with open("okay.txt","r") as m:
     loco=m.read().split('\n')
 headers2 = {
     'sec-ch-ua': '"Not)A;Brand";v="99", "Google Chrome";v="127", "Chromium";v="127"',
     'Referer': 'https://www.myntra.com/',
     'sec-ch-ua-mobile': '?0',
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
+    'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 11_4_0; like Mac OS X) AppleWebKit/600.26 (KHTML, like Gecko)  Chrome/47.0.3504.204 Mobile Safari/535.0',
     'sec-ch-ua-platform': '"Windows"',
 }
 headers = {
     'sec-ch-ua': '"Not)A;Brand";v="99", "Google Chrome";v="127", "Chromium";v="127"',
     'accept': 'application/json',
     'Referer': 'https://www.ajio.com/b/campus-sutra?query=%3Anewn%3Abrand%3ACampus%20Sutra%3Aoccasion%3ACasual%3Al1l3nestedcategory%3AMen%20-%20Shirts%3Al1l3nestedcategory%3AWomen%20-%20Shirts%3Agenderfilter%3AMen%3Arating%3A4%20star%20%26%20above&classifier=intent&gridColumns=5&segmentIds=',
-    'sec-ch-ua-mobile': '?0',
+    'sec-ch-ua-mobile': '?1',
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
-    'sec-ch-ua-platform': '"Windows"',
+    'sec-ch-ua-platform': '"Sun Microsystems"',
 }
 
 #follow redirects
@@ -264,18 +267,29 @@ async def main2():
             else:
                 print("In stock")
 total_bandwidth=0
+today=datetime.now().strftime("%d-%m-%Y")
+with open('proxies.txt','r') as f:prx=f.read().split("\n")
 async def reqm(client, url):
+    global I
     global total_bandwidth
     async with limiter:
+        proa=('pomijfhn','unu8s737a7gi')
+        proxies={
+        "http": "http://pomijfhn-rotate:unu8s737a7gi@p.webshare.io:80/",
+        "https": "http://pomijfhn-rotate:unu8s737a7gi@p.webshare.io:80/"
+    }  
+        
+        proxies['http']=prx[I//40]
+        proxies['https']=prx[I//40]
         #try:
-        data = await client.get(url, headers=headers,proxies=proxies,proxy_auth=("pomijfhn-rotate", "unu8s737a7gi"))
+        data =await client.get(url,proxies=proxies,proxy_auth=proa,impersonate='safari')
+        client.cookies.jar._cookies.update(load_cookies())
+        I+=1
         #except:
-        #    print(f"Timeout occurred for URL: {url}")  # Log the URL if it times out
-        #    return [] 
+        #    print(url)
+        #    return []
         html_content=data.text
-        print(html_content)
         response_size_kb = len(html_content.encode('utf-8')) / 1024  # Calculate size in KB
-        total_bandwidth += response_size_kb  # Update total bandwidth
         print(f"Bandwidth used : {response_size_kb:.2f} KB")  # Print individual bandwidth
         soup = BeautifulSoup(html_content, 'html.parser')
 
@@ -299,6 +313,7 @@ async def reqm(client, url):
 
         for size in product_data['sizes']:
             row = {
+                'Date' :today,
                 'Platform': 'Myntra',
                 'Brand': product_data.get('brand', {}).get('name', 'Unknown Brand'),
                 'Name': product_data.get('name', 'Unknown Name'),
@@ -314,17 +329,22 @@ async def reqm(client, url):
             }
             rows.append(row)
         return rows
-
+def load_cookies():
+    if not os.path.isfile("cookies.pk"):
+        return None
+    with open("cookies.pk", "rb") as f:
+        return pickle.load(f)
 async def main3():
     async with AsyncSession() as client:
         tasks = []
-        for i in range(39):
+        for i in range(3960):
             tasks.append(reqm(client, loco[i]))
         print("Starting")
         res = await asyncio.gather(*tasks)
         characters= [item for sublist in res for item in sublist]
         t=pd.DataFrame(characters)
-        t.to_csv('huxh22.csv',index=False)
+        t.to_csv('huxh12_.csv',index=False)
+        t.to_clipboard(header=False,index=False)
         print(t)
         print(f"Total bandwidth used: {total_bandwidth:.2f} KB")  # Print total bandwidth
 
